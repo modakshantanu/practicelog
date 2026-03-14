@@ -5,11 +5,13 @@
 
   width: min(1100px, 100%);
   margin: 0 auto;
+  height: 100dvh;
   min-height: 100dvh;
   padding: 0.7rem;
   display: flex;
   flex-direction: column;
   gap: 0.65rem;
+  overflow: hidden;
 }
 
 .auth-only-shell {
