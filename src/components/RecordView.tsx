@@ -1,4 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
+import {
+  clearRecordDraftState,
+  loadRecordDraftState,
+  saveRecordDraftState,
+} from '../storage'
 import type { PracticeSession, SuggestedValues } from '../types'
 import { buildEmptyDraft } from '../utils/sessionDraft'
 import { elapsedSeconds, nowIsoLocalMinute, parseLocalDateTime } from '../utils/time'
@@ -9,12 +14,51 @@ type RecordViewProps = {
   onSaveSession: (session: PracticeSession) => void
 }
 
+type RecordViewInitialState = {
+  draft: ReturnType<typeof buildEmptyDraft>
+  accumulatedSeconds: number
+  runStartedMs: number | null
+  tickMs: number
+}
+
+function buildInitialRecordState(): RecordViewInitialState {
+  const persisted = loadRecordDraftState()
+  const fallback = buildEmptyDraft()
+
+  if (!persisted) {
+    return {
+      draft: fallback,
+      accumulatedSeconds: 0,
+      runStartedMs: null,
+      tickMs: 0,
+    }
+  }
+
+  const draft = {
+    ...fallback,
+    ...persisted.draft,
+    entries: persisted.draft.entries.length ? persisted.draft.entries : fallback.entries,
+  }
+
+  return {
+    draft,
+    accumulatedSeconds: persisted.accumulatedSeconds,
+    runStartedMs: persisted.runStartedMs,
+    tickMs: persisted.runStartedMs ? Date.now() : 0,
+  }
+}
+
 export function RecordView({ suggestions, onSaveSession }: RecordViewProps) {
-  const [draft, setDraft] = useState(buildEmptyDraft)
-  const [runStartedMs, setRunStartedMs] = useState<number | null>(null)
-  const [accumulatedSeconds, setAccumulatedSeconds] = useState(0)
-  const [tickMs, setTickMs] = useState(0)
+  const [initialState] = useState(buildInitialRecordState)
+  const [draft, setDraft] = useState(initialState.draft)
+  const [runStartedMs, setRunStartedMs] = useState<number | null>(initialState.runStartedMs)
+  const [accumulatedSeconds, setAccumulatedSeconds] = useState(initialState.accumulatedSeconds)
+  const [tickMs, setTickMs] = useState(initialState.tickMs)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    saveRecordDraftState({ draft, accumulatedSeconds, runStartedMs })
+  }, [draft, accumulatedSeconds, runStartedMs])
 
   useEffect(() => {
     if (!runStartedMs) {
@@ -86,6 +130,7 @@ export function RecordView({ suggestions, onSaveSession }: RecordViewProps) {
     }
 
     onSaveSession(session)
+    clearRecordDraftState()
     setDraft(buildEmptyDraft())
     setRunStartedMs(null)
     setAccumulatedSeconds(0)

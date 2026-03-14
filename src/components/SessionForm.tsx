@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import type { PracticeEntry, SessionDraft, SuggestedValues } from '../types'
 import { createDraftEntry } from '../utils/sessionDraft'
@@ -24,15 +25,6 @@ function toNumberOrNull(value: string): number | null {
   return Math.round(parsed)
 }
 
-function toSafeMinNumber(value: string, min: number, fallback: number): number {
-  const parsed = Number(value)
-  if (!Number.isFinite(parsed)) {
-    return fallback
-  }
-
-  return Math.max(min, Math.round(parsed))
-}
-
 export function SessionForm({
   draft,
   suggestions,
@@ -41,9 +33,39 @@ export function SessionForm({
   onSubmit,
   onCancel,
 }: SessionFormProps) {
+  const [durationInput, setDurationInput] = useState(() =>
+    String(draft.totalDurationMinutes),
+  )
+
+  useEffect(() => {
+    setDurationInput(String(draft.totalDurationMinutes))
+  }, [draft.totalDurationMinutes])
+
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     onSubmit()
+  }
+
+  const handleDurationInput = (value: string) => {
+    if (!value.trim()) {
+      setDurationInput('')
+      onChange({
+        ...draft,
+        totalDurationMinutes: 0,
+      })
+      return
+    }
+
+    const parsed = Number(value)
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      return
+    }
+
+    setDurationInput(value)
+    onChange({
+      ...draft,
+      totalDurationMinutes: Math.round(parsed),
+    })
   }
 
   const updateEntry = (
@@ -116,17 +138,8 @@ export function SessionForm({
             required
             min={0}
             type="number"
-            value={draft.totalDurationMinutes}
-            onChange={(event) =>
-              onChange({
-                ...draft,
-                totalDurationMinutes: toSafeMinNumber(
-                  event.target.value,
-                  0,
-                  draft.totalDurationMinutes,
-                ),
-              })
-            }
+            value={durationInput}
+            onChange={(event) => handleDurationInput(event.target.value)}
           />
         </label>
       </div>

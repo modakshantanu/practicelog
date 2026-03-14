@@ -25,6 +25,7 @@ import type { PracticeSession } from './types'
 
 const IS_DEV = import.meta.env.DEV
 type SyncStatus = 'idle' | 'syncing' | 'synced' | 'error' | 'offline'
+const CLOUD_POLL_INTERVAL_MS = 30000
 
 function toSortTime(isoDate: string): number {
   return new Date(isoDate).getTime() || 0
@@ -210,6 +211,63 @@ function App() {
       }
     }
   }, [currentUser, isOnline, sessions, syncStatus])
+
+  useEffect(() => {
+    if (!currentUser || !cloudReadyRef.current || !isOnline) {
+      return
+    }
+
+    let cancelled = false
+    let inFlight = false
+
+    const pollCloud = async () => {
+      if (cancelled || inFlight) {
+        return
+      }
+
+      const localSessions = sessionsRef.current
+      const localDigest = JSON.stringify(localSessions)
+      const hadPendingLocalChanges = localDigest !== lastSyncedDigestRef.current
+
+      inFlight = true
+      try {
+        const remoteResult = await fetchCloudSessions()
+        if (cancelled) {
+          return
+        }
+
+        const remoteSessions = sanitizeSessions(remoteResult.sessions)
+        const merged = mergeSessionsByRecency(localSessions, remoteSessions)
+        const mergedDigest = JSON.stringify(merged)
+
+        if (JSON.stringify(localSessions) !== mergedDigest) {
+          setSessions(merged)
+        }
+
+        if (!hadPendingLocalChanges) {
+          lastSyncedDigestRef.current = mergedDigest
+          setSyncStatus('synced')
+        }
+      } catch {
+        if (!cancelled) {
+          setSyncStatus('error')
+        }
+      } finally {
+        inFlight = false
+      }
+    }
+
+    void pollCloud()
+
+    const intervalId = window.setInterval(() => {
+      void pollCloud()
+    }, CLOUD_POLL_INTERVAL_MS)
+
+    return () => {
+      cancelled = true
+      window.clearInterval(intervalId)
+    }
+  }, [currentUser, isOnline, sessions])
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true)

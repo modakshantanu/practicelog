@@ -13,7 +13,7 @@ export function createDraftEntry(): PracticeEntry {
 export function buildEmptyDraft(): SessionDraft {
   return {
     startTime: nowIsoLocalMinute(),
-    totalDurationMinutes: 30,
+    totalDurationMinutes: 0,
     notes: '',
     entries: [createDraftEntry()],
   }

@@ -1,6 +1,14 @@
 import type { PracticeSession, SuggestedValues } from './types'
+import type { SessionDraft } from './types'
 
 const STORAGE_KEY = 'piano_practice_sessions_v1'
+const RECORD_DRAFT_STORAGE_KEY = 'piano_practice_record_draft_v1'
+
+export type RecordDraftState = {
+  draft: SessionDraft
+  accumulatedSeconds: number
+  runStartedMs: number | null
+}
 
 function toSafeNumber(value: unknown, fallback = 0): number {
   const parsed = Number(value)
@@ -21,6 +29,57 @@ function toIso(value: unknown, fallback: string): string {
   }
 
   return parsed.toISOString()
+}
+
+function sanitizeDraft(input: unknown): SessionDraft | null {
+  if (!input || typeof input !== 'object') {
+    return null
+  }
+
+  const candidate = input as Partial<SessionDraft>
+
+  const entries = Array.isArray(candidate.entries)
+    ? candidate.entries
+        .map((entry) => {
+          if (!entry || typeof entry !== 'object') {
+            return null
+          }
+
+          const next = entry as {
+            id?: unknown
+            piece?: unknown
+            focusArea?: unknown
+            durationMinutes?: unknown
+          }
+
+          return {
+            id:
+              typeof next.id === 'string' && next.id.trim()
+                ? next.id
+                : crypto.randomUUID(),
+            piece: typeof next.piece === 'string' ? next.piece : '',
+            focusArea: typeof next.focusArea === 'string' ? next.focusArea : '',
+            durationMinutes:
+              next.durationMinutes == null
+                ? null
+                : Math.max(0, Math.round(toSafeNumber(next.durationMinutes, 0))),
+          }
+        })
+        .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
+    : []
+
+  return {
+    startTime:
+      typeof candidate.startTime === 'string' && candidate.startTime.trim()
+        ? candidate.startTime
+        : '',
+    totalDurationMinutes: Math.max(
+      0,
+      Math.round(toSafeNumber(candidate.totalDurationMinutes, 0)),
+    ),
+    notes: typeof candidate.notes === 'string' ? candidate.notes : '',
+    entries,
+  }
 }
 
 function sanitizeSession(input: unknown): PracticeSession | null {
@@ -134,6 +193,55 @@ export function saveSessions(sessions: PracticeSession[]): void {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(sortSessions(sessions)))
   } catch {
     // Ignore storage write failures (e.g., quota exceeded).
+  }
+}
+
+export function loadRecordDraftState(): RecordDraftState | null {
+  const raw = localStorage.getItem(RECORD_DRAFT_STORAGE_KEY)
+  if (!raw) {
+    return null
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as {
+      draft?: unknown
+      accumulatedSeconds?: unknown
+      runStartedMs?: unknown
+    }
+    const draft = sanitizeDraft(parsed.draft)
+    if (!draft) {
+      return null
+    }
+
+    return {
+      draft,
+      accumulatedSeconds: Math.max(
+        0,
+        Math.floor(toSafeNumber(parsed.accumulatedSeconds, 0)),
+      ),
+      runStartedMs:
+        parsed.runStartedMs == null
+          ? null
+          : Math.floor(toSafeNumber(parsed.runStartedMs, Date.now())),
+    }
+  } catch {
+    return null
+  }
+}
+
+export function saveRecordDraftState(state: RecordDraftState): void {
+  try {
+    localStorage.setItem(RECORD_DRAFT_STORAGE_KEY, JSON.stringify(state))
+  } catch {
+    // Ignore storage write failures (e.g., quota exceeded).
+  }
+}
+
+export function clearRecordDraftState(): void {
+  try {
+    localStorage.removeItem(RECORD_DRAFT_STORAGE_KEY)
+  } catch {
+    // Ignore storage remove failures.
   }
 }
 
