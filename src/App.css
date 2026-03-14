@@ -29,6 +29,18 @@
   margin: 0;
   color: var(--color-muted);
   font-size: 0.85rem;
+  text-align: right;
+  max-width: min(48%, 26rem);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.header-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
 }
 
 .app-header,

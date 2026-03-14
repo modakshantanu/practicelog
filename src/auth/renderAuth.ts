@@ -40,7 +40,8 @@ export async function fetchCurrentUser(): Promise<AuthUser | null> {
 }
 
 export function beginGoogleSignIn(): void {
-  window.location.assign(buildUrl('/auth/google'))
+  const returnTo = encodeURIComponent(window.location.origin)
+  window.location.assign(buildUrl(`/auth/google?returnTo=${returnTo}`))
 }
 
 export async function signOutCurrentUser(): Promise<void> {

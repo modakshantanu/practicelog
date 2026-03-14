@@ -128,6 +128,7 @@ Server:
 
 - PORT
 - FRONTEND_URL
+- ALLOWED_FRONTEND_ORIGINS (optional, comma-separated)
 - API_BASE_URL
 - SESSION_SECRET
 - DATABASE_URL
@@ -150,3 +151,17 @@ Create a Web OAuth client and set:
 - Deploy frontend as a static service.
 - Deploy server as a web service with `npm run server` start command.
 - Provision Render Postgres and set `DATABASE_URL` in server environment.
+
+### Run Local Frontend Against Prod API
+
+- Set local `.env.local` with:
+
+```bash
+VITE_API_BASE_URL=https://practicelog-server.onrender.com
+```
+
+- In the Render API service, include localhost in `ALLOWED_FRONTEND_ORIGINS`:
+
+```text
+https://practicelog.onrender.com,http://localhost:5173
+```

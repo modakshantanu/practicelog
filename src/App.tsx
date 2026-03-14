@@ -153,7 +153,7 @@ function App() {
   return (
     <div className="app-shell">
       <header className="app-header">
-        <div>
+        <div className="header-top">
           <h1>Practice Log</h1>
           <p className="auth-user">
             Signed in as {currentUser.name ?? currentUser.email ?? 'Google user'}

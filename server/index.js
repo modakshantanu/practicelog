@@ -12,6 +12,7 @@ dotenv.config()
 const {
   PORT = '8787',
   FRONTEND_URL = 'http://localhost:5173',
+  ALLOWED_FRONTEND_ORIGINS,
   API_BASE_URL = `http://localhost:${PORT}`,
   SESSION_SECRET,
   DATABASE_URL,
@@ -19,6 +20,28 @@ const {
   GOOGLE_CLIENT_SECRET,
   NODE_ENV,
 } = process.env
+
+const allowedFrontendOrigins = new Set(
+  (ALLOWED_FRONTEND_ORIGINS ?? FRONTEND_URL)
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean),
+)
+
+allowedFrontendOrigins.add(FRONTEND_URL)
+
+function isAllowedOrigin(value) {
+  if (!value) {
+    return false
+  }
+
+  try {
+    const candidate = new URL(value)
+    return allowedFrontendOrigins.has(candidate.origin)
+  } catch {
+    return false
+  }
+}
 
 const missing = [
   ['SESSION_SECRET', SESSION_SECRET],
@@ -129,7 +152,14 @@ app.set('trust proxy', 1)
 
 app.use(
   cors({
-    origin: FRONTEND_URL,
+    origin(origin, callback) {
+      if (!origin || allowedFrontendOrigins.has(origin)) {
+        callback(null, true)
+        return
+      }
+
+      callback(new Error(`Origin not allowed: ${origin}`))
+    },
     credentials: true,
   }),
 )
@@ -163,13 +193,19 @@ app.get('/healthz', (_req, res) => {
   res.json({ ok: true })
 })
 
-app.get(
-  '/auth/google',
+app.get('/auth/google', (req, res, next) => {
+  const requestedReturnTo =
+    typeof req.query.returnTo === 'string' ? req.query.returnTo : ''
+
+  req.session.oauthReturnTo = isAllowedOrigin(requestedReturnTo)
+    ? requestedReturnTo
+    : FRONTEND_URL
+
   passport.authenticate('google', {
     scope: ['openid', 'email', 'profile'],
     prompt: 'select_account',
-  }),
-)
+  })(req, res, next)
+})
 
 app.get(
   '/auth/google/callback',
@@ -177,8 +213,15 @@ app.get(
     failureRedirect: `${FRONTEND_URL}/?auth=failed`,
     session: true,
   }),
-  (_req, res) => {
-    res.redirect(FRONTEND_URL)
+  (req, res) => {
+    const redirectTo =
+      typeof req.session.oauthReturnTo === 'string' &&
+      isAllowedOrigin(req.session.oauthReturnTo)
+        ? req.session.oauthReturnTo
+        : FRONTEND_URL
+
+    delete req.session.oauthReturnTo
+    res.redirect(redirectTo)
   },
 )
 
