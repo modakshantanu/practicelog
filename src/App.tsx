@@ -3,6 +3,7 @@ import './App.css'
 import {
   beginGoogleSignIn,
   fetchCurrentUser,
+  ingestAuthTokenFromUrl,
   type AuthUser,
   signOutCurrentUser,
 } from './auth/renderAuth'
@@ -33,6 +34,8 @@ function App() {
 
   useEffect(() => {
     let cancelled = false
+
+    ingestAuthTokenFromUrl()
 
     fetchCurrentUser()
       .then((user) => {

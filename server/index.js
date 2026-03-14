@@ -1,4 +1,5 @@
 import cors from 'cors'
+import crypto from 'crypto'
 import dotenv from 'dotenv'
 import express from 'express'
 import session from 'express-session'
@@ -15,6 +16,7 @@ const {
   ALLOWED_FRONTEND_ORIGINS,
   API_BASE_URL = `http://localhost:${PORT}`,
   SESSION_SECRET,
+  AUTH_TOKEN_SECRET,
   DATABASE_URL,
   GOOGLE_CLIENT_ID,
   GOOGLE_CLIENT_SECRET,
@@ -60,6 +62,7 @@ if (missing.length) {
 }
 
 const isProduction = NODE_ENV === 'production'
+const tokenSecret = AUTH_TOKEN_SECRET || SESSION_SECRET
 
 const pool = new Pool({
   connectionString: DATABASE_URL,
@@ -67,6 +70,86 @@ const pool = new Pool({
 })
 
 const PgSession = connectPgSimple(session)
+
+function base64UrlEncode(value) {
+  return Buffer.from(value).toString('base64url')
+}
+
+function base64UrlDecode(value) {
+  return Buffer.from(value, 'base64url').toString('utf8')
+}
+
+function signAuthToken(payload) {
+  const body = base64UrlEncode(JSON.stringify(payload))
+  const signature = crypto
+    .createHmac('sha256', tokenSecret)
+    .update(body)
+    .digest('base64url')
+
+  return `${body}.${signature}`
+}
+
+function verifyAuthToken(token) {
+  if (!token || typeof token !== 'string') {
+    return null
+  }
+
+  const [body, signature] = token.split('.')
+  if (!body || !signature) {
+    return null
+  }
+
+  const expected = crypto
+    .createHmac('sha256', tokenSecret)
+    .update(body)
+    .digest('base64url')
+
+  if (signature !== expected) {
+    return null
+  }
+
+  try {
+    const payload = JSON.parse(base64UrlDecode(body))
+    if (!payload || typeof payload !== 'object') {
+      return null
+    }
+
+    if (typeof payload.exp !== 'number' || Date.now() > payload.exp) {
+      return null
+    }
+
+    if (typeof payload.userId !== 'number') {
+      return null
+    }
+
+    return payload
+  } catch {
+    return null
+  }
+}
+
+function tokenFromRequest(req) {
+  const header = req.headers.authorization
+  if (!header || !header.startsWith('Bearer ')) {
+    return null
+  }
+
+  return header.slice('Bearer '.length).trim()
+}
+
+async function userFromToken(req) {
+  const token = tokenFromRequest(req)
+  const payload = verifyAuthToken(token)
+  if (!payload) {
+    return null
+  }
+
+  const result = await pool.query(
+    `SELECT id, google_id, email, name, avatar_url FROM app_users WHERE id = $1`,
+    [payload.userId],
+  )
+  return result.rows[0] ?? null
+}
 
 async function ensureTables() {
   await pool.query(`
@@ -221,26 +304,49 @@ app.get(
         : FRONTEND_URL
 
     delete req.session.oauthReturnTo
-    res.redirect(redirectTo)
+
+    const userId = req.user?.id
+    const authToken =
+      typeof userId === 'number'
+        ? signAuthToken({
+            userId,
+            exp: Date.now() + 1000 * 60 * 60 * 24 * 30,
+          })
+        : null
+
+    if (!authToken) {
+      res.redirect(redirectTo)
+      return
+    }
+
+    const separator = redirectTo.includes('?') ? '&' : '?'
+    res.redirect(`${redirectTo}${separator}auth_token=${encodeURIComponent(authToken)}`)
   },
 )
 
-app.get('/auth/me', (req, res) => {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ authenticated: false })
-    return
-  }
+app.get('/auth/me', async (req, res, next) => {
+  try {
+    const tokenUser = await userFromToken(req)
+    const sessionUser = req.isAuthenticated() ? req.user : null
+    const user = tokenUser ?? sessionUser
 
-  const user = req.user
-  res.json({
-    authenticated: true,
-    user: {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      avatarUrl: user.avatar_url,
-    },
-  })
+    if (!user) {
+      res.status(401).json({ authenticated: false })
+      return
+    }
+
+    res.json({
+      authenticated: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        avatarUrl: user.avatar_url,
+      },
+    })
+  } catch (error) {
+    next(error)
+  }
 })
 
 app.post('/auth/logout', (req, res, next) => {

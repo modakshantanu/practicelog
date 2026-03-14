@@ -5,6 +5,8 @@ export type AuthUser = {
   avatarUrl: string | null
 }
 
+const AUTH_TOKEN_KEY = 'practice_log_auth_token_v1'
+
 type AuthMeResponse = {
   authenticated: boolean
   user?: AuthUser
@@ -18,12 +20,41 @@ function buildUrl(path: string): string {
   return `${API_BASE_URL}${path}`
 }
 
+function getAuthToken(): string | null {
+  const value = window.localStorage.getItem(AUTH_TOKEN_KEY)
+  return value && value.trim() ? value : null
+}
+
+function setAuthToken(token: string): void {
+  window.localStorage.setItem(AUTH_TOKEN_KEY, token)
+}
+
+function clearAuthToken(): void {
+  window.localStorage.removeItem(AUTH_TOKEN_KEY)
+}
+
+export function ingestAuthTokenFromUrl(): void {
+  const url = new URL(window.location.href)
+  const token = url.searchParams.get('auth_token')
+  if (!token) {
+    return
+  }
+
+  setAuthToken(token)
+  url.searchParams.delete('auth_token')
+  window.history.replaceState({}, document.title, url.pathname + url.search + url.hash)
+}
+
 export async function fetchCurrentUser(): Promise<AuthUser | null> {
+  const token = getAuthToken()
+
   const response = await fetch(buildUrl('/auth/me'), {
     credentials: 'include',
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   })
 
   if (response.status === 401) {
+    clearAuthToken()
     return null
   }
 
@@ -45,12 +76,17 @@ export function beginGoogleSignIn(): void {
 }
 
 export async function signOutCurrentUser(): Promise<void> {
+  const token = getAuthToken()
+
   const response = await fetch(buildUrl('/auth/logout'), {
     method: 'POST',
     credentials: 'include',
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   })
 
   if (!response.ok && response.status !== 204) {
     throw new Error('Sign-out failed.')
   }
+
+  clearAuthToken()
 }

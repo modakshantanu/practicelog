@@ -131,6 +131,7 @@ Server:
 - ALLOWED_FRONTEND_ORIGINS (optional, comma-separated)
 - API_BASE_URL
 - SESSION_SECRET
+- AUTH_TOKEN_SECRET (recommended; falls back to SESSION_SECRET)
 - DATABASE_URL
 - GOOGLE_CLIENT_ID
 - GOOGLE_CLIENT_SECRET
@@ -165,3 +166,7 @@ VITE_API_BASE_URL=https://practicelog-server.onrender.com
 ```text
 https://practicelog.onrender.com,http://localhost:5173
 ```
+
+### iOS Safari Note
+
+Some iOS browsers block cross-site cookies for split frontend/API domains. The app includes a signed auth token fallback so login persists even when session cookies are restricted.
