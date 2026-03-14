@@ -196,6 +196,8 @@ h1 {
   align-items: start;
   min-height: 0;
   overflow: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .content > * {
