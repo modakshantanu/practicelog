@@ -12,6 +12,25 @@
   gap: 0.65rem;
 }
 
+.auth-only-shell {
+  justify-content: center;
+}
+
+.auth-panel {
+  width: min(560px, 100%);
+  margin: 0 auto;
+}
+
+.auth-error {
+  color: #ffd7c7;
+}
+
+.auth-user {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+
 .app-header,
 .panel,
 .stat-card,
@@ -90,6 +109,14 @@ h1 {
 
 .tab-nav.dev {
   grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.tab-nav.with-auth {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.tab-nav.with-auth.dev {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .tab-nav button {

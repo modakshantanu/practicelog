@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import './App.css'
+import {
+  beginGoogleSignIn,
+  fetchCurrentUser,
+  type AuthUser,
+  signOutCurrentUser,
+} from './auth/renderAuth'
+import { AuthView } from './components/AuthView'
 import { DashboardView } from './components/DashboardView'
 import { PwaInstallHint } from './components/PwaInstallHint'
 import { RecordView } from './components/RecordView'
@@ -10,6 +17,10 @@ import type { PracticeSession } from './types'
 const IS_DEV = import.meta.env.DEV
 
 function App() {
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null)
+  const [authLoading, setAuthLoading] = useState(true)
+  const [authActionLoading, setAuthActionLoading] = useState(false)
+  const [authError, setAuthError] = useState('')
   const [activeTab, setActiveTab] = useState<'record' | 'sessions' | 'dashboard'>(
     'record',
   )
@@ -19,6 +30,31 @@ function App() {
   useEffect(() => {
     saveSessions(sessions)
   }, [sessions])
+
+  useEffect(() => {
+    let cancelled = false
+
+    fetchCurrentUser()
+      .then((user) => {
+        if (!cancelled) {
+          setCurrentUser(user)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setAuthError('Unable to reach auth service. Check server config.')
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setAuthLoading(false)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true)
@@ -71,13 +107,59 @@ function App() {
     setActiveTab('record')
   }
 
+  const handleSignIn = async () => {
+    setAuthError('')
+    beginGoogleSignIn()
+  }
+
+  const handleSignOut = async () => {
+    setAuthError('')
+    setAuthActionLoading(true)
+    try {
+      await signOutCurrentUser()
+      setCurrentUser(null)
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Sign-out failed. Please try again.'
+      setAuthError(message)
+    } finally {
+      setAuthActionLoading(false)
+    }
+  }
+
+  if (authLoading) {
+    return (
+      <div className="app-shell">
+        <section className="panel auth-panel">
+          <p className="muted">Loading account...</p>
+        </section>
+      </div>
+    )
+  }
+
+  if (!currentUser) {
+    return (
+      <div className="app-shell auth-only-shell">
+        <AuthView
+          configured
+          loading={authActionLoading}
+          error={authError}
+          onSignIn={handleSignIn}
+        />
+      </div>
+    )
+  }
+
   return (
     <div className="app-shell">
       <header className="app-header">
         <div>
           <h1>Practice Log</h1>
+          <p className="auth-user">
+            Signed in as {currentUser.name ?? currentUser.email ?? 'Google user'}
+          </p>
         </div>
-        <nav className={`tab-nav${IS_DEV ? ' dev' : ''}`} aria-label="Main sections">
+        <nav className={`tab-nav with-auth${IS_DEV ? ' dev' : ''}`} aria-label="Main sections">
           <button
             className={activeTab === 'record' ? 'active' : ''}
             onClick={() => setActiveTab('record')}
@@ -104,6 +186,9 @@ function App() {
               Load sample profile
             </button>
           )}
+          <button className="ghost" type="button" onClick={handleSignOut}>
+            {authActionLoading ? 'Signing out...' : 'Sign out'}
+          </button>
         </nav>
       </header>
 

@@ -17,6 +17,8 @@ It runs entirely in the browser and stores data in localStorage.
 - TypeScript
 - Vite
 - ESLint
+- Express (Google OAuth)
+- PostgreSQL (Render)
 
 ## Getting Started
 
@@ -42,6 +44,12 @@ Run lint checks:
 
 ```bash
 npm run lint
+```
+
+Run auth server (separate terminal):
+
+```bash
+npm run server
 ```
 
 ## Data Model
@@ -105,3 +113,40 @@ This project is configured as an installable Progressive Web App (PWA).
 - public/pwa-icon-192.png
 - public/pwa-icon-512.png
 - public/apple-touch-icon.png
+
+## Google Auth (Render-Only)
+
+Google sign-in is implemented using a backend server (no Firebase).
+
+### Required Environment Variables
+
+Client:
+
+- VITE_API_BASE_URL
+
+Server:
+
+- PORT
+- FRONTEND_URL
+- API_BASE_URL
+- SESSION_SECRET
+- DATABASE_URL
+- GOOGLE_CLIENT_ID
+- GOOGLE_CLIENT_SECRET
+
+Use [.env.example](.env.example) as the template.
+
+### Google Console OAuth Setup
+
+Create a Web OAuth client and set:
+
+- Authorized JavaScript origin (local): http://localhost:5173
+- Authorized JavaScript origin (prod): your Render static site URL
+- Redirect URI (local): http://localhost:8787/auth/google/callback
+- Redirect URI (prod): https://your-api.onrender.com/auth/google/callback
+
+### Render Deployment
+
+- Deploy frontend as a static service.
+- Deploy server as a web service with `npm run server` start command.
+- Provision Render Postgres and set `DATABASE_URL` in server environment.
