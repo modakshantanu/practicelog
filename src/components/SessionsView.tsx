@@ -15,6 +15,7 @@ type SessionsViewProps = {
   suggestions: SuggestedValues
   onDeleteSessions: (nextSessions: PracticeSession[]) => void
   onUpdateSession: (session: PracticeSession) => void
+  onClearAllData: () => void
 }
 
 function sessionToDraft(session: PracticeSession) {
@@ -33,6 +34,7 @@ export function SessionsView({
   suggestions,
   onDeleteSessions,
   onUpdateSession,
+  onClearAllData,
 }: SessionsViewProps) {
   const [selectedIdsState, setSelectedIdsState] = useState<string[]>([])
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -143,6 +145,14 @@ export function SessionsView({
             disabled={!selectedIds.length}
           >
             Delete selected ({selectedIds.length})
+          </button>
+          <button
+            className="btn danger"
+            type="button"
+            onClick={onClearAllData}
+            disabled={!sessions.length}
+          >
+            Clear data
           </button>
         </div>
       </div>

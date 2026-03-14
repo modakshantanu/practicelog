@@ -91,9 +91,6 @@ function App() {
               Load fake profile
             </button>
           )}
-          <button className="btn danger" type="button" onClick={handleClearSessions}>
-            Clear data
-          </button>
         </div>
       </header>
 
@@ -108,6 +105,7 @@ function App() {
             suggestions={suggestions}
             onDeleteSessions={setSessions}
             onUpdateSession={handleUpdateSession}
+            onClearAllData={handleClearSessions}
           />
         )}
 

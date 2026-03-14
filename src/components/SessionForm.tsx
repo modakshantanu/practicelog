@@ -77,9 +77,9 @@ export function SessionForm({
 
   return (
     <form className="session-form" onSubmit={handleSubmit}>
-      <div className="grid two-col">
-        <label className="field">
-          <span>Start time</span>
+      <div className="inline-fields">
+        <label className="inline-field-row">
+          <span>Start time:</span>
           <input
             required
             type="datetime-local"
@@ -93,8 +93,8 @@ export function SessionForm({
           />
         </label>
 
-        <label className="field">
-          <span>Total duration (minutes)</span>
+        <label className="inline-field-row">
+          <span>Duration (mins):</span>
           <input
             required
             min={0}
@@ -143,6 +143,28 @@ export function SessionForm({
           Add row
         </button>
       </div>
+
+      {suggestions.recentPieces.length > 0 && (
+        <div className="chips">
+          {suggestions.recentPieces.map((piece) => (
+            <button
+              key={piece}
+              className="chip"
+              type="button"
+              onClick={() => {
+                const nextEntries = [...draft.entries]
+                nextEntries[0] = {
+                  ...nextEntries[0],
+                  piece,
+                }
+                onChange({ ...draft, entries: nextEntries })
+              }}
+            >
+              {piece}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="entry-list">
         {draft.entries.map((entry) => (
@@ -211,28 +233,6 @@ export function SessionForm({
             <option key={focusArea} value={focusArea} />
           ))}
         </datalist>
-
-        {suggestions.pieces.length > 0 && (
-          <div className="chips">
-            {suggestions.pieces.slice(0, 6).map((piece) => (
-              <button
-                key={piece}
-                className="chip"
-                type="button"
-                onClick={() => {
-                  const nextEntries = [...draft.entries]
-                  nextEntries[0] = {
-                    ...nextEntries[0],
-                    piece,
-                  }
-                  onChange({ ...draft, entries: nextEntries })
-                }}
-              >
-                {piece}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
       <div className="actions">

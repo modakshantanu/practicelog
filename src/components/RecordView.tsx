@@ -119,7 +119,7 @@ export function RecordView({ suggestions, onSaveSession }: RecordViewProps) {
         <div className="actions">
           {!liveStartMs && (
             <button className="btn primary" type="button" onClick={startRealtime}>
-              Start session
+              Start
             </button>
           )}
           {liveStartMs && (
@@ -140,7 +140,7 @@ export function RecordView({ suggestions, onSaveSession }: RecordViewProps) {
               }))
             }
           >
-            Sync to timer
+            Sync
           </button>
         </div>
       </div>

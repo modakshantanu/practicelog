@@ -157,6 +157,8 @@ export function deleteSessions(
 
 export function getSuggestions(sessions: PracticeSession[]): SuggestedValues {
   const pieces = new Set<string>()
+  const recentPieces: string[] = []
+  const recentPieceSet = new Set<string>()
   const focusAreas = new Set<string>()
 
   sessions.forEach((session) => {
@@ -165,6 +167,10 @@ export function getSuggestions(sessions: PracticeSession[]): SuggestedValues {
       const normalizedFocus = entry.focusArea.trim()
       if (normalizedPiece) {
         pieces.add(normalizedPiece)
+        if (!recentPieceSet.has(normalizedPiece) && recentPieces.length < 5) {
+          recentPieceSet.add(normalizedPiece)
+          recentPieces.push(normalizedPiece)
+        }
       }
       if (normalizedFocus) {
         focusAreas.add(normalizedFocus)
@@ -174,6 +180,7 @@ export function getSuggestions(sessions: PracticeSession[]): SuggestedValues {
 
   return {
     pieces: [...pieces].sort((a, b) => a.localeCompare(b)),
+    recentPieces,
     focusAreas: [...focusAreas].sort((a, b) => a.localeCompare(b)),
   }
 }

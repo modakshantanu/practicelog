@@ -2,9 +2,9 @@
   width: min(1100px, 100%);
   margin: 0 auto;
   min-height: 100dvh;
-  padding: 1rem;
+  padding: 0.7rem;
   display: grid;
-  gap: 1rem;
+  gap: 0.65rem;
 }
 
 .app-header,
@@ -21,9 +21,9 @@
 }
 
 .app-header {
-  padding: 1.25rem;
+  padding: 0.85rem;
   display: grid;
-  gap: 1rem;
+  gap: 0.65rem;
 }
 
 .kicker {
@@ -35,30 +35,30 @@
 }
 
 h1 {
-  margin: 0.35rem 0;
+  margin: 0.2rem 0;
   line-height: 1.05;
-  font-size: clamp(1.65rem, 6vw, 2.65rem);
+  font-size: clamp(1.2rem, 4.2vw, 1.75rem);
 }
 
 .tab-nav {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.5rem;
+  gap: 0.35rem;
 }
 
 .header-actions {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.35rem;
   flex-wrap: wrap;
 }
 
 .tab-nav button {
   border: 1px solid var(--color-border);
-  border-radius: 0.75rem;
+  border-radius: 0.6rem;
   background: rgba(255, 255, 255, 0.03);
   color: var(--color-text);
   font-weight: 600;
-  padding: 0.65rem;
+  padding: 0.45rem 0.55rem;
   cursor: pointer;
 }
 
@@ -73,9 +73,9 @@ h1 {
 }
 
 .panel {
-  padding: 1rem;
+  padding: 0.75rem;
   display: grid;
-  gap: 1rem;
+  gap: 0.65rem;
   animation: rise 220ms ease;
 }
 
@@ -83,7 +83,7 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.8rem;
+  gap: 0.5rem;
   flex-wrap: wrap;
 }
 
@@ -115,28 +115,49 @@ h3 {
 }
 
 .live-card {
-  padding: 1rem;
+  padding: 0.65rem;
   display: flex;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: 0.5rem;
   align-items: end;
   flex-wrap: wrap;
 }
 
 .live-time {
-  font-size: clamp(2rem, 10vw, 3rem);
+  font-size: clamp(1.2rem, 6.5vw, 1.8rem);
   line-height: 1;
   font-weight: 700;
 }
 
 .session-form {
   display: grid;
-  gap: 0.85rem;
+  gap: 0.6rem;
 }
 
 .grid {
   display: grid;
-  gap: 0.8rem;
+  gap: 0.55rem;
+}
+
+.inline-fields {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.inline-field-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+}
+
+.inline-field-row input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.inline-field-row span {
+  white-space: nowrap;
 }
 
 .two-col {
@@ -145,8 +166,8 @@ h3 {
 
 .field {
   display: grid;
-  gap: 0.33rem;
-  font-size: 0.92rem;
+  gap: 0.2rem;
+  font-size: 0.86rem;
 }
 
 .field span {
@@ -157,8 +178,8 @@ input,
 textarea,
 select {
   border: 1px solid var(--color-border);
-  border-radius: 0.7rem;
-  padding: 0.65rem 0.7rem;
+  border-radius: 0.55rem;
+  padding: 0.45rem 0.5rem;
   background: rgba(9, 13, 19, 0.68);
   color: var(--color-text);
   font: inherit;
@@ -184,15 +205,15 @@ select:focus {
 
 .entry-list {
   display: grid;
-  gap: 0.65rem;
+  gap: 0.45rem;
 }
 
 .entry-row {
   border: 1px solid var(--color-border);
-  border-radius: 0.9rem;
-  padding: 0.65rem;
+  border-radius: 0.65rem;
+  padding: 0.45rem;
   display: grid;
-  gap: 0.55rem;
+  gap: 0.35rem;
   background: rgba(17, 22, 30, 0.7);
 }
 
@@ -222,16 +243,17 @@ select:focus {
 .actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0.35rem;
 }
 
 .btn {
   border: 1px solid var(--color-border);
-  border-radius: 0.7rem;
+  border-radius: 0.55rem;
   background: rgba(255, 255, 255, 0.04);
   color: var(--color-text);
-  padding: 0.55rem 0.8rem;
+  padding: 0.4rem 0.6rem;
   font-weight: 600;
+  font-size: 0.86rem;
   cursor: pointer;
 }
 
@@ -258,18 +280,18 @@ select:focus {
 
 .session-list {
   display: grid;
-  gap: 0.7rem;
+  gap: 0.45rem;
 }
 
 .session-card {
-  padding: 0.85rem;
+  padding: 0.55rem;
   display: grid;
-  gap: 0.65rem;
+  gap: 0.4rem;
 }
 
 .session-top {
   display: flex;
-  gap: 0.6rem;
+  gap: 0.4rem;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
@@ -284,9 +306,9 @@ select:focus {
 
 .entry-summary {
   margin: 0;
-  padding-left: 1rem;
+  padding-left: 0.85rem;
   display: grid;
-  gap: 0.2rem;
+  gap: 0.12rem;
 }
 
 .muted {
@@ -307,12 +329,12 @@ select:focus {
   width: min(860px, 100%);
   max-height: 92dvh;
   overflow: auto;
-  padding: 1rem;
+  padding: 0.7rem;
 }
 
 .horizon-picker {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.35rem;
   flex-wrap: wrap;
 }
 
@@ -329,13 +351,13 @@ select:focus {
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 0.75rem;
+  gap: 0.45rem;
 }
 
 .stat-card {
-  padding: 0.8rem;
+  padding: 0.55rem;
   display: grid;
-  gap: 0.2rem;
+  gap: 0.1rem;
 }
 
 .stat-card span {
@@ -343,31 +365,31 @@ select:focus {
 }
 
 .stat-card strong {
-  font-size: 1.25rem;
+  font-size: 1.05rem;
 }
 
 .breakdown-list {
   display: grid;
-  gap: 0.7rem;
+  gap: 0.45rem;
 }
 
 .breakdown-card {
-  padding: 0.8rem;
+  padding: 0.55rem;
 }
 
 .breakdown-card header {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: 0.5rem;
+  gap: 0.3rem;
 }
 
 .breakdown-card ul {
-  margin: 0.65rem 0 0;
+  margin: 0.4rem 0 0;
   padding: 0;
   list-style: none;
   display: grid;
-  gap: 0.3rem;
+  gap: 0.2rem;
 }
 
 .breakdown-card li {
@@ -389,11 +411,11 @@ select:focus {
 
 @media (min-width: 860px) {
   .app-shell {
-    padding: 1.25rem;
+    padding: 0.9rem;
   }
 
   .app-header,
   .panel {
-    padding: 1.2rem 1.35rem;
+    padding: 0.9rem 1rem;
   }
 }

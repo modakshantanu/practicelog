@@ -17,6 +17,7 @@ export type PracticeSession = {
 
 export type SuggestedValues = {
   pieces: string[]
+  recentPieces: string[]
   focusAreas: string[]
 }
 
