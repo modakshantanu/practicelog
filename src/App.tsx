@@ -6,6 +6,8 @@ import { SessionsView } from './components/SessionsView'
 import { getSuggestions, loadSessions, saveSessions, upsertSession } from './storage'
 import type { PracticeSession } from './types'
 
+const IS_DEV = import.meta.env.DEV
+
 function App() {
   const [activeTab, setActiveTab] = useState<'record' | 'sessions' | 'dashboard'>(
     'record',
@@ -25,6 +27,33 @@ function App() {
 
   const handleUpdateSession = (nextSession: PracticeSession) => {
     setSessions((current) => upsertSession(current, nextSession))
+  }
+
+  const handleLoadFakeProfile = async () => {
+    if (!IS_DEV) {
+      return
+    }
+
+    const approved = window.confirm(
+      'Load fake profile data? This replaces current local sessions.',
+    )
+    if (!approved) {
+      return
+    }
+
+    const { createFakeProfileSessions } = await import('./utils/mockProfile')
+    setSessions(createFakeProfileSessions())
+    setActiveTab('dashboard')
+  }
+
+  const handleClearSessions = () => {
+    const approved = window.confirm('Clear all local sessions?')
+    if (!approved) {
+      return
+    }
+
+    setSessions([])
+    setActiveTab('record')
   }
 
   return (
@@ -56,6 +85,16 @@ function App() {
             Dashboard
           </button>
         </nav>
+        <div className="header-actions">
+          {IS_DEV && (
+            <button className="btn ghost" type="button" onClick={handleLoadFakeProfile}>
+              Load fake profile
+            </button>
+          )}
+          <button className="btn danger" type="button" onClick={handleClearSessions}>
+            Clear data
+          </button>
+        </div>
       </header>
 
       <main className="content">

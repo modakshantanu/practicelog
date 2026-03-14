@@ -56,3 +56,8 @@ export function elapsedMinutes(startedAtMs: number): number {
   const elapsed = Date.now() - startedAtMs
   return Math.max(0, Math.floor(elapsed / 60_000))
 }
+
+export function elapsedSeconds(startedAtMs: number): number {
+  const elapsed = Date.now() - startedAtMs
+  return Math.max(0, Math.floor(elapsed / 1_000))
+}

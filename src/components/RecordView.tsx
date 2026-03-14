@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { PracticeSession, SuggestedValues } from '../types'
 import { buildEmptyDraft } from '../utils/sessionDraft'
-import { elapsedMinutes, nowIsoLocalMinute, parseLocalDateTime } from '../utils/time'
+import {
+  elapsedMinutes,
+  elapsedSeconds,
+  nowIsoLocalMinute,
+  parseLocalDateTime,
+} from '../utils/time'
 import { SessionForm } from './SessionForm'
 
 type RecordViewProps = {
@@ -10,10 +15,9 @@ type RecordViewProps = {
 }
 
 export function RecordView({ suggestions, onSaveSession }: RecordViewProps) {
-  const [mode, setMode] = useState<'realtime' | 'manual'>('realtime')
   const [draft, setDraft] = useState(buildEmptyDraft)
   const [liveStartMs, setLiveStartMs] = useState<number | null>(null)
-  const [liveMinutes, setLiveMinutes] = useState(0)
+  const [liveSeconds, setLiveSeconds] = useState(0)
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -22,19 +26,20 @@ export function RecordView({ suggestions, onSaveSession }: RecordViewProps) {
     }
 
     const timer = setInterval(() => {
-      setLiveMinutes(elapsedMinutes(liveStartMs))
+      setLiveSeconds(elapsedSeconds(liveStartMs))
     }, 1000)
 
     return () => clearInterval(timer)
   }, [liveStartMs])
 
   const liveLabel = useMemo(() => {
-    const hours = Math.floor(liveMinutes / 60)
-    const minutes = liveMinutes % 60
+    const hours = Math.floor(liveSeconds / 3600)
+    const minutes = Math.floor((liveSeconds % 3600) / 60)
+    const seconds = liveSeconds % 60
     return `${hours.toString().padStart(2, '0')}:${minutes
       .toString()
-      .padStart(2, '0')}`
-  }, [liveMinutes])
+      .padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+  }, [liveSeconds])
 
   const saveFromDraft = () => {
     setError('')
@@ -72,13 +77,13 @@ export function RecordView({ suggestions, onSaveSession }: RecordViewProps) {
     onSaveSession(session)
     setDraft(buildEmptyDraft())
     setLiveStartMs(null)
-    setLiveMinutes(0)
+    setLiveSeconds(0)
   }
 
   const startRealtime = () => {
     const start = Date.now()
     setLiveStartMs(start)
-    setLiveMinutes(0)
+    setLiveSeconds(0)
     setError('')
     setDraft((current) => ({
       ...current,
@@ -104,75 +109,48 @@ export function RecordView({ suggestions, onSaveSession }: RecordViewProps) {
     <section className="panel">
       <div className="panel-head">
         <h2>Record Practice</h2>
-        <div className="segmented" role="tablist" aria-label="Recording mode">
+      </div>
+
+      <div className="live-card">
+        <div>
+          <div className="kicker">Timer</div>
+          <div className="live-time">{liveLabel}</div>
+        </div>
+        <div className="actions">
+          {!liveStartMs && (
+            <button className="btn primary" type="button" onClick={startRealtime}>
+              Start session
+            </button>
+          )}
+          {liveStartMs && (
+            <button className="btn danger" type="button" onClick={stopRealtime}>
+              Stop timer
+            </button>
+          )}
           <button
-            className={`segmented-btn ${mode === 'realtime' ? 'active' : ''}`}
-            onClick={() => setMode('realtime')}
+            className="btn ghost"
             type="button"
+            disabled={!liveStartMs}
+            onClick={() =>
+              setDraft((current) => ({
+                ...current,
+                totalDurationMinutes: liveStartMs
+                  ? Math.max(1, elapsedMinutes(liveStartMs))
+                  : current.totalDurationMinutes,
+              }))
+            }
           >
-            Real time
-          </button>
-          <button
-            className={`segmented-btn ${mode === 'manual' ? 'active' : ''}`}
-            onClick={() => {
-              if (liveStartMs) {
-                setDraft((current) => ({
-                  ...current,
-                  totalDurationMinutes: Math.max(1, elapsedMinutes(liveStartMs)),
-                }))
-              }
-              setMode('manual')
-              setLiveStartMs(null)
-            }}
-            type="button"
-          >
-            Manual add
+            Sync to timer
           </button>
         </div>
       </div>
-
-      {mode === 'realtime' && (
-        <div className="live-card">
-          <div>
-            <div className="kicker">Timer</div>
-            <div className="live-time">{liveLabel}</div>
-          </div>
-          <div className="actions">
-            {!liveStartMs && (
-              <button className="btn primary" type="button" onClick={startRealtime}>
-                Start session
-              </button>
-            )}
-            {liveStartMs && (
-              <button className="btn danger" type="button" onClick={stopRealtime}>
-                Stop timer
-              </button>
-            )}
-            <button
-              className="btn ghost"
-              type="button"
-              disabled={!liveStartMs}
-              onClick={() =>
-                setDraft((current) => ({
-                  ...current,
-                  totalDurationMinutes: liveStartMs
-                    ? Math.max(1, elapsedMinutes(liveStartMs))
-                    : current.totalDurationMinutes,
-                }))
-              }
-            >
-              Sync to timer
-            </button>
-          </div>
-        </div>
-      )}
 
       {error && <p className="muted">{error}</p>}
 
       <SessionForm
         draft={draft}
         suggestions={suggestions}
-        submitLabel={mode === 'realtime' ? 'Save session' : 'Add manual session'}
+        submitLabel="Save session"
         onChange={setDraft}
         onSubmit={saveFromDraft}
       />

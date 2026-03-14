@@ -129,14 +129,14 @@ export function SessionForm({
       </label>
 
       <div className="entry-head">
-        <h3>Pieces and Focus Areas</h3>
+        <h3>Pieces</h3>
         <button
           type="button"
           className="btn ghost"
           onClick={() =>
             onChange({
               ...draft,
-              entries: [...draft.entries, createDraftEntry()],
+              entries: [createDraftEntry(), ...draft.entries],
             })
           }
         >
@@ -145,35 +145,35 @@ export function SessionForm({
       </div>
 
       <div className="entry-list">
-        {draft.entries.map((entry, index) => (
+        {draft.entries.map((entry) => (
           <div className="entry-row" key={entry.id}>
-            <div className="entry-title">#{index + 1}</div>
-
-            <label className="field">
-              <span>Piece</span>
+            <div className="field">
               <input
+                aria-label="Piece"
                 list="piece-suggestions"
                 value={entry.piece}
                 onChange={(event) =>
                   updateEntry(entry.id, 'piece', event.target.value)
                 }
+                placeholder="Piece"
               />
-            </label>
+            </div>
 
-            <label className="field">
-              <span>Focus area (optional)</span>
+            <div className="field">
               <input
+                aria-label="Focus area"
                 list="focus-suggestions"
                 value={entry.focusArea}
                 onChange={(event) =>
                   updateEntry(entry.id, 'focusArea', event.target.value)
                 }
+                placeholder="Focus area (optional)"
               />
-            </label>
+            </div>
 
-            <label className="field">
-              <span>Time on this item (optional)</span>
+            <div className="field">
               <input
+                aria-label="Time in minutes"
                 min={0}
                 type="number"
                 value={entry.durationMinutes ?? ''}
@@ -184,9 +184,9 @@ export function SessionForm({
                     toNumberOrNull(event.target.value),
                   )
                 }
-                placeholder="minutes"
+                placeholder="Time (optional)"
               />
-            </label>
+            </div>
 
             <button
               type="button"
@@ -214,7 +214,6 @@ export function SessionForm({
 
         {suggestions.pieces.length > 0 && (
           <div className="chips">
-            <span>Pieces:</span>
             {suggestions.pieces.slice(0, 6).map((piece) => (
               <button
                 key={piece}
