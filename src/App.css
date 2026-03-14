@@ -150,6 +150,11 @@ h1 {
   color: #ffb6af;
 }
 
+.sync-indicator.disconnected {
+  border-color: rgba(255, 160, 122, 0.75);
+  color: #ffd0c4;
+}
+
 .sync-indicator.offline {
   border-color: rgba(167, 173, 185, 0.7);
   color: #a7adb9;

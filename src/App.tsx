@@ -24,8 +24,33 @@ import {
 import type { PracticeSession } from './types'
 
 const IS_DEV = import.meta.env.DEV
-type SyncStatus = 'idle' | 'syncing' | 'synced' | 'error' | 'offline'
+type SyncStatus =
+  | 'idle'
+  | 'syncing'
+  | 'synced'
+  | 'error'
+  | 'offline'
+  | 'disconnected'
 const CLOUD_POLL_INTERVAL_MS = 30000
+const CLOUD_POLL_TIMEOUT_MS = 5000
+
+async function fetchCloudSessionsWithTimeout(timeoutMs: number) {
+  let timeoutId: number | null = null
+
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = window.setTimeout(() => {
+      reject(new Error('Cloud ping timeout'))
+    }, timeoutMs)
+  })
+
+  try {
+    return await Promise.race([fetchCloudSessions(), timeoutPromise])
+  } finally {
+    if (timeoutId != null) {
+      window.clearTimeout(timeoutId)
+    }
+  }
+}
 
 function toSortTime(isoDate: string): number {
   return new Date(isoDate).getTime() || 0
@@ -99,7 +124,9 @@ function App() {
     const hydrateFromCloud = async () => {
       setSyncStatus('syncing')
       try {
-        const remoteResult = await fetchCloudSessions()
+        const remoteResult = await fetchCloudSessionsWithTimeout(
+          CLOUD_POLL_TIMEOUT_MS,
+        )
         if (cancelled) {
           return
         }
@@ -131,7 +158,11 @@ function App() {
               ? error.message
               : 'Unable to sync sessions from cloud.'
           setAuthError(message)
-          setSyncStatus('error')
+          if (message === 'Cloud ping timeout') {
+            setSyncStatus('disconnected')
+          } else {
+            setSyncStatus('error')
+          }
         }
       }
     }
@@ -231,7 +262,9 @@ function App() {
 
       inFlight = true
       try {
-        const remoteResult = await fetchCloudSessions()
+        const remoteResult = await fetchCloudSessionsWithTimeout(
+          CLOUD_POLL_TIMEOUT_MS,
+        )
         if (cancelled) {
           return
         }
@@ -250,7 +283,7 @@ function App() {
         }
       } catch {
         if (!cancelled) {
-          setSyncStatus('error')
+          setSyncStatus('disconnected')
         }
       } finally {
         inFlight = false
@@ -346,6 +379,9 @@ function App() {
     }
   }
 
+  const syncStatusLabel =
+    syncStatus === 'disconnected' ? 'not connected' : syncStatus
+
   if (authLoading) {
     return (
       <div className="app-shell">
@@ -378,13 +414,15 @@ function App() {
             <span
               className={`sync-indicator ${syncStatus}`}
               role="status"
-              aria-label={`Sync status: ${syncStatus}`}
-              title={`Sync status: ${syncStatus}`}
+              aria-label={`Sync status: ${syncStatusLabel}`}
+              title={`Sync status: ${syncStatusLabel}`}
             >
               {syncStatus === 'syncing'
                 ? ''
                 : syncStatus === 'synced'
                   ? '✓'
+                  : syncStatus === 'disconnected'
+                    ? '×'
                   : syncStatus === 'error'
                     ? '!'
                     : syncStatus === 'offline'
