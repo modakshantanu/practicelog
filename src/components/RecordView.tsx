@@ -105,17 +105,20 @@ export function RecordView({ suggestions, onSaveSession }: RecordViewProps) {
       return
     }
 
-    const baseSeconds = Math.max(0, Math.round(draft.totalDurationMinutes * 60))
     const start = Date.now()
 
-    if (baseSeconds === 0) {
+    if (accumulatedSeconds === 0) {
       setDraft((current) => ({
         ...current,
         startTime: nowIsoLocalMinute(),
       }))
     }
 
-    setAccumulatedSeconds(baseSeconds)
+    // Timer state is the source of truth; starting does not read manual duration.
+    setDraft((current) => ({
+      ...current,
+      totalDurationMinutes: Math.floor(accumulatedSeconds / 60),
+    }))
     setRunStartedMs(start)
     setTickMs(start)
     setError('')
@@ -153,7 +156,7 @@ export function RecordView({ suggestions, onSaveSession }: RecordViewProps) {
           <button
             className="btn danger"
             type="button"
-            disabled={!runStartedMs && accumulatedSeconds === 0 && draft.totalDurationMinutes === 0}
+            disabled={!runStartedMs && accumulatedSeconds === 0}
             onClick={resetRealtime}
           >
             Reset
