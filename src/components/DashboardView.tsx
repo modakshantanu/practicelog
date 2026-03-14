@@ -1,6 +1,11 @@
 import { useMemo, useState } from 'react'
 import type { Horizon, PracticeSession } from '../types'
-import { computeAnalytics, filterByDays, HORIZONS } from '../utils/analytics'
+import {
+  computeAnalytics,
+  filterByDays,
+  HORIZONS,
+  isHorizon,
+} from '../utils/analytics'
 import { formatMinutes } from '../utils/time'
 
 type DashboardViewProps = {
@@ -10,6 +15,7 @@ type DashboardViewProps = {
 export function DashboardView({ sessions }: DashboardViewProps) {
   const [horizon, setHorizon] = useState<Horizon>('7d')
   const [customDays, setCustomDays] = useState(14)
+  const horizonOptions = useMemo(() => Object.keys(HORIZONS) as Horizon[], [])
 
   const scopedSessions = useMemo(() => {
     const config = HORIZONS[horizon]
@@ -21,6 +27,17 @@ export function DashboardView({ sessions }: DashboardViewProps) {
 
   const analytics = useMemo(() => computeAnalytics(scopedSessions), [scopedSessions])
 
+  const handleHorizonChange = (value: string) => {
+    if (isHorizon(value)) {
+      setHorizon(value)
+    }
+  }
+
+  const handleCustomDaysChange = (value: string) => {
+    const parsed = Number.parseInt(value, 10)
+    setCustomDays(Number.isFinite(parsed) && parsed > 0 ? parsed : 1)
+  }
+
   return (
     <section className="panel">
       <div className="panel-head">
@@ -28,11 +45,11 @@ export function DashboardView({ sessions }: DashboardViewProps) {
         <div className="horizon-picker">
           <select
             value={horizon}
-            onChange={(event) => setHorizon(event.target.value as Horizon)}
+            onChange={(event) => handleHorizonChange(event.target.value)}
           >
-            {Object.entries(HORIZONS).map(([value, config]) => (
+            {horizonOptions.map((value) => (
               <option key={value} value={value}>
-                {config.label}
+                {HORIZONS[value].label}
               </option>
             ))}
           </select>
@@ -43,9 +60,7 @@ export function DashboardView({ sessions }: DashboardViewProps) {
                 type="number"
                 min={1}
                 value={customDays}
-                onChange={(event) =>
-                  setCustomDays(Math.max(1, Number(event.target.value) || 1))
-                }
+                onChange={(event) => handleCustomDaysChange(event.target.value)}
               />
             </label>
           )}

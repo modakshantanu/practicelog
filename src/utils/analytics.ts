@@ -1,17 +1,21 @@
-import type { PracticeEntry, PracticeSession } from '../types'
+import type { Horizon, PracticeEntry, PracticeSession } from '../types'
 
 export type HorizonConfig = {
   label: string
   days: number | null
 }
 
-export const HORIZONS: Record<string, HorizonConfig> = {
+export const HORIZONS: Record<Horizon, HorizonConfig> = {
   '1d': { label: 'Past day', days: 1 },
   '7d': { label: 'Past 7 days', days: 7 },
   '30d': { label: 'Past 30 days', days: 30 },
   '90d': { label: 'Past 90 days', days: 90 },
   all: { label: 'All time', days: null },
   custom: { label: 'Custom', days: null },
+}
+
+export function isHorizon(value: string): value is Horizon {
+  return value in HORIZONS
 }
 
 type EntryDuration = {

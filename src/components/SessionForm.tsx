@@ -75,6 +75,23 @@ export function SessionForm({
     })
   }
 
+  const applyRecentPiece = (piece: string) => {
+    if (!draft.entries.length) {
+      onChange({
+        ...draft,
+        entries: [{ ...createDraftEntry(), piece }],
+      })
+      return
+    }
+
+    const nextEntries = [...draft.entries]
+    nextEntries[0] = {
+      ...nextEntries[0],
+      piece,
+    }
+    onChange({ ...draft, entries: nextEntries })
+  }
+
   return (
     <form className="session-form" onSubmit={handleSubmit}>
       <div className="inline-fields">
@@ -151,14 +168,7 @@ export function SessionForm({
               key={piece}
               className="chip"
               type="button"
-              onClick={() => {
-                const nextEntries = [...draft.entries]
-                nextEntries[0] = {
-                  ...nextEntries[0],
-                  piece,
-                }
-                onChange({ ...draft, entries: nextEntries })
-              }}
+              onClick={() => applyRecentPiece(piece)}
             >
               {piece}
             </button>

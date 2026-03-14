@@ -36,7 +36,7 @@ export function SessionsView({
   onUpdateSession,
   onClearAllData,
 }: SessionsViewProps) {
-  const [selectedIdsState, setSelectedIdsState] = useState<string[]>([])
+  const [selectedIdsRaw, setSelectedIdsRaw] = useState<string[]>([])
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editDraft, setEditDraft] = useState(buildEmptyDraft)
   const [error, setError] = useState('')
@@ -46,14 +46,16 @@ export function SessionsView({
     [sessions],
   )
   const selectedIds = useMemo(
-    () => selectedIdsState.filter((id) => validIdSet.has(id)),
-    [selectedIdsState, validIdSet],
+    () => selectedIdsRaw.filter((id) => validIdSet.has(id)),
+    [selectedIdsRaw, validIdSet],
   )
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds])
   const allSelected = sessions.length > 0 && selectedIds.length === sessions.length
+  const hasValidEditingSession =
+    editingId != null && sessions.some((session) => session.id === editingId)
 
   const toggleSelected = (sessionId: string) => {
-    setSelectedIdsState((current) => {
+    setSelectedIdsRaw((current) => {
       const filtered = current.filter((id) => validIdSet.has(id))
       return filtered.includes(sessionId)
         ? filtered.filter((id) => id !== sessionId)
@@ -63,17 +65,33 @@ export function SessionsView({
 
   const selectAll = () => {
     if (allSelected) {
-      setSelectedIdsState([])
+      setSelectedIdsRaw([])
       return
     }
 
-    setSelectedIdsState(sessions.map((session) => session.id))
+    setSelectedIdsRaw(sessions.map((session) => session.id))
   }
 
   const removeSelected = () => {
+    const confirmed = window.confirm(
+      `Delete ${selectedIds.length} selected session${selectedIds.length === 1 ? '' : 's'}?`,
+    )
+    if (!confirmed) {
+      return
+    }
+
     const next = deleteSessions(sessions, selectedIds)
     onDeleteSessions(next)
-    setSelectedIdsState([])
+    setSelectedIdsRaw([])
+  }
+
+  const deleteOneSession = (sessionId: string) => {
+    const confirmed = window.confirm('Delete this session?')
+    if (!confirmed) {
+      return
+    }
+
+    onDeleteSessions(deleteSessions(sessions, [sessionId]))
   }
 
   const beginEdit = (session: PracticeSession) => {
@@ -166,10 +184,10 @@ export function SessionsView({
               <label className="checkbox">
                 <input
                   type="checkbox"
+                  aria-label="Select session"
                   checked={selectedSet.has(session.id)}
                   onChange={() => toggleSelected(session.id)}
                 />
-                <span>Select</span>
               </label>
               <strong>{formatDateTime(session.startTime)}</strong>
               <span>{session.totalDurationMinutes} min</span>
@@ -196,7 +214,7 @@ export function SessionsView({
               <button
                 className="btn danger"
                 type="button"
-                onClick={() => onDeleteSessions(deleteSessions(sessions, [session.id]))}
+                onClick={() => deleteOneSession(session.id)}
               >
                 Delete
               </button>
@@ -205,7 +223,7 @@ export function SessionsView({
         ))}
       </div>
 
-      {editingId && (
+      {editingId && hasValidEditingSession && (
         <div className="modal-backdrop">
           <div className="modal-card">
             <h3>Edit session</h3>

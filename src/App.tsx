@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 import { DashboardView } from './components/DashboardView'
+import { PwaInstallHint } from './components/PwaInstallHint'
 import { RecordView } from './components/RecordView'
 import { SessionsView } from './components/SessionsView'
 import { getSuggestions, loadSessions, saveSessions, upsertSession } from './storage'
@@ -13,10 +14,24 @@ function App() {
     'record',
   )
   const [sessions, setSessions] = useState<PracticeSession[]>(() => loadSessions())
+  const [isOnline, setIsOnline] = useState(() => window.navigator.onLine)
 
   useEffect(() => {
     saveSessions(sessions)
   }, [sessions])
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true)
+    const handleOffline = () => setIsOnline(false)
+
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [])
 
   const suggestions = useMemo(() => getSuggestions(sessions), [sessions])
 
@@ -93,6 +108,14 @@ function App() {
           )}
         </div>
       </header>
+
+      {!isOnline && (
+        <div className="network-banner" role="status" aria-live="polite">
+          Offline mode: local changes are saved on this device.
+        </div>
+      )}
+
+      <PwaInstallHint />
 
       <main className="content">
         {activeTab === 'record' && (

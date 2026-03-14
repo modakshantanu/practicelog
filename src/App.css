@@ -1,9 +1,14 @@
 .app-shell {
+  --header-fixed-height: 9.5rem;
+  --panel-head-fixed-height: 2.6rem;
+  --stat-card-fixed-height: 4.1rem;
+
   width: min(1100px, 100%);
   margin: 0 auto;
   min-height: 100dvh;
   padding: 0.7rem;
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 0.65rem;
 }
 
@@ -13,17 +18,53 @@
 .breakdown-card,
 .session-card,
 .live-card,
-.modal-card {
+.modal-card,
+.pwa-hint,
+.network-banner {
   border: 1px solid var(--color-border);
   background: linear-gradient(145deg, var(--color-surface), var(--color-surface-2));
   box-shadow: 0 20px 45px rgba(0, 0, 0, 0.35);
   border-radius: 1rem;
 }
 
+.network-banner {
+  display: flex;
+  align-items: center;
+  padding: 0.35rem 0.7rem;
+  color: #ffd7c7;
+  border-color: rgba(255, 122, 112, 0.4);
+  background: linear-gradient(145deg, rgba(95, 35, 35, 0.8), rgba(62, 26, 26, 0.8));
+}
+
+.pwa-hint {
+  padding: 0.55rem 0.7rem;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.pwa-hint-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pwa-hint .muted {
+  margin: 0;
+}
+
+.pwa-hint .actions {
+  justify-content: flex-end;
+}
+
 .app-header {
   padding: 0.85rem;
   display: grid;
   gap: 0.65rem;
+  align-content: start;
+  height: var(--header-fixed-height);
+  min-height: var(--header-fixed-height);
+  max-height: var(--header-fixed-height);
+  overflow: hidden;
 }
 
 .kicker {
@@ -44,6 +85,7 @@ h1 {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.35rem;
+  align-items: start;
 }
 
 .header-actions {
@@ -60,6 +102,8 @@ h1 {
   font-weight: 600;
   padding: 0.45rem 0.55rem;
   cursor: pointer;
+  min-height: 2rem;
+  height: 2rem;
 }
 
 .tab-nav button.active {
@@ -69,7 +113,15 @@ h1 {
 }
 
 .content {
+  flex: 1 1 auto;
   display: grid;
+  align-items: start;
+  min-height: 0;
+  overflow: auto;
+}
+
+.content > * {
+  align-self: start;
 }
 
 .panel {
@@ -77,6 +129,7 @@ h1 {
   display: grid;
   gap: 0.65rem;
   animation: rise 220ms ease;
+  align-content: start;
 }
 
 .panel-head {
@@ -85,6 +138,12 @@ h1 {
   justify-content: space-between;
   gap: 0.5rem;
   flex-wrap: wrap;
+  align-content: flex-start;
+  height: var(--panel-head-fixed-height);
+  min-height: var(--panel-head-fixed-height);
+  max-height: var(--panel-head-fixed-height);
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 h2,
@@ -121,6 +180,11 @@ h3 {
   gap: 0.5rem;
   align-items: end;
   flex-wrap: wrap;
+  align-content: flex-start;
+  height: 4.5rem;
+  min-height: 4.5rem;
+  max-height: 4.5rem;
+  overflow: hidden;
 }
 
 .live-time {
@@ -281,6 +345,7 @@ select:focus {
 .session-list {
   display: grid;
   gap: 0.45rem;
+  align-content: start;
 }
 
 .session-card {
@@ -352,12 +417,18 @@ select:focus {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 0.45rem;
+  align-items: start;
+  grid-auto-rows: var(--stat-card-fixed-height);
 }
 
 .stat-card {
   padding: 0.55rem;
   display: grid;
   gap: 0.1rem;
+  height: var(--stat-card-fixed-height);
+  min-height: var(--stat-card-fixed-height);
+  max-height: var(--stat-card-fixed-height);
+  overflow: hidden;
 }
 
 .stat-card span {
@@ -371,6 +442,7 @@ select:focus {
 .breakdown-list {
   display: grid;
   gap: 0.45rem;
+  align-content: start;
 }
 
 .breakdown-card {

@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Practice Log - Offline</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #080b10;
+        --surface: #121923;
+        --text: #f0ece6;
+        --muted: #a7adb9;
+        --border: #283244;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100dvh;
+        display: grid;
+        place-items: center;
+        padding: 1.2rem;
+        font-family: Manrope, 'IBM Plex Sans', sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at 12% 0%, rgba(210, 111, 66, 0.24), transparent 44%),
+          radial-gradient(circle at 90% 18%, rgba(217, 164, 65, 0.2), transparent 42%),
+          linear-gradient(180deg, #06090f, #090d13 30%, #05070b);
+      }
+      .card {
+        width: min(560px, 100%);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 1rem;
+        background: linear-gradient(145deg, var(--surface), #0d141d);
+      }
+      h1 { margin: 0 0 0.5rem; font-size: 1.25rem; }
+      p { margin: 0 0 0.55rem; color: var(--muted); }
+      button {
+        margin-top: 0.35rem;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text);
+        font: inherit;
+        padding: 0.45rem 0.65rem;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <h1>You are offline</h1>
+      <p>Practice Log is not available yet in this browser session.</p>
+      <p>Reconnect once to cache the app shell, then it will open offline.</p>
+      <button type="button" onclick="location.reload()">Try again</button>
+    </main>
+  </body>
+</html>
