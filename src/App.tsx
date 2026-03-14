@@ -77,7 +77,7 @@ function App() {
         <div>
           <h1>Practice Log</h1>
         </div>
-        <nav className="tab-nav" aria-label="Main sections">
+        <nav className={`tab-nav${IS_DEV ? ' dev' : ''}`} aria-label="Main sections">
           <button
             className={activeTab === 'record' ? 'active' : ''}
             onClick={() => setActiveTab('record')}
@@ -99,14 +99,12 @@ function App() {
           >
             Dashboard
           </button>
-        </nav>
-        <div className="header-actions">
           {IS_DEV && (
-            <button className="btn ghost" type="button" onClick={handleLoadFakeProfile}>
-              Load fake profile
+            <button className="ghost" type="button" onClick={handleLoadFakeProfile}>
+              Load sample profile
             </button>
           )}
-        </div>
+        </nav>
       </header>
 
       {!isOnline && (
