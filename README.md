@@ -10,6 +10,7 @@ It runs entirely in the browser and stores data in localStorage.
 - Edit and delete past sessions, including multi-select delete operations.
 - Analyze practice trends by time horizon with breakdown by piece and focus area.
 - Reuse past piece and focus-area values through auto-suggestions.
+- Sync sessions across devices when signed in with Google.
 
 ## Tech Stack
 
@@ -118,6 +119,15 @@ This project is configured as an installable Progressive Web App (PWA).
 
 Google sign-in is implemented using a backend server (no Firebase).
 
+Cloud session sync is implemented via authenticated API endpoints:
+
+- GET /api/sessions
+- PUT /api/sessions
+
+Practice sessions are stored per user in Render Postgres table:
+
+- user_practice_sessions
+
 ### Required Environment Variables
 
 Client:
@@ -128,7 +138,6 @@ Server:
 
 - PORT
 - FRONTEND_URL
-- ALLOWED_FRONTEND_ORIGINS (optional, comma-separated)
 - API_BASE_URL
 - SESSION_SECRET
 - AUTH_TOKEN_SECRET (recommended; falls back to SESSION_SECRET)
@@ -152,20 +161,6 @@ Create a Web OAuth client and set:
 - Deploy frontend as a static service.
 - Deploy server as a web service with `npm run server` start command.
 - Provision Render Postgres and set `DATABASE_URL` in server environment.
-
-### Run Local Frontend Against Prod API
-
-- Set local `.env.local` with:
-
-```bash
-VITE_API_BASE_URL=https://practicelog-server.onrender.com
-```
-
-- In the Render API service, include localhost in `ALLOWED_FRONTEND_ORIGINS`:
-
-```text
-https://practicelog.onrender.com,http://localhost:5173
-```
 
 ### iOS Safari Note
 

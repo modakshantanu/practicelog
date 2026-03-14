@@ -112,6 +112,47 @@ h1 {
   font-size: clamp(1.2rem, 4.2vw, 1.75rem);
 }
 
+.app-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.sync-indicator {
+  width: 0.95rem;
+  height: 0.95rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  font-size: 0.68rem;
+  line-height: 1;
+  color: var(--color-muted);
+  user-select: none;
+}
+
+.sync-indicator.syncing {
+  border-color: #d9a441;
+  border-top-color: transparent;
+  animation: spin 800ms linear infinite;
+}
+
+.sync-indicator.synced {
+  border-color: rgba(112, 232, 169, 0.7);
+  color: #70e8a9;
+}
+
+.sync-indicator.error {
+  border-color: rgba(255, 122, 112, 0.7);
+  color: #ffb6af;
+}
+
+.sync-indicator.offline {
+  border-color: rgba(167, 173, 185, 0.7);
+  color: #a7adb9;
+}
+
 .tab-nav {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -347,6 +388,10 @@ select:focus {
   gap: 0.35rem;
 }
 
+.hidden-input {
+  display: none;
+}
+
 .btn {
   border: 1px solid var(--color-border);
   border-radius: 0.55rem;
@@ -515,6 +560,15 @@ select:focus {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }
 

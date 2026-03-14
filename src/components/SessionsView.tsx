@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useRef, useState } from 'react'
 import type { PracticeSession, SuggestedValues } from '../types'
 import { deleteSessions } from '../storage'
+import { exportSessionsToCsv, importSessionsFromCsv } from '../utils/csvSessions'
 import {
   formatDateTime,
   isoToLocalMinute,
@@ -40,19 +41,70 @@ export function SessionsView({
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editDraft, setEditDraft] = useState(buildEmptyDraft)
   const [error, setError] = useState('')
+  const [importMode, setImportMode] = useState<'merge' | 'replace'>('merge')
+  const [importMessage, setImportMessage] = useState('')
+  const importInputRef = useRef<HTMLInputElement>(null)
 
-  const validIdSet = useMemo(
-    () => new Set(sessions.map((session) => session.id)),
-    [sessions],
-  )
-  const selectedIds = useMemo(
-    () => selectedIdsRaw.filter((id) => validIdSet.has(id)),
-    [selectedIdsRaw, validIdSet],
-  )
-  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds])
+  const validIdSet = new Set(sessions.map((session) => session.id))
+  const selectedIds = selectedIdsRaw.filter((id) => validIdSet.has(id))
+  const selectedSet = new Set(selectedIds)
   const allSelected = sessions.length > 0 && selectedIds.length === sessions.length
   const hasValidEditingSession =
     editingId != null && sessions.some((session) => session.id === editingId)
+
+  const handleExportCsv = () => {
+    const csv = exportSessionsToCsv(sessions)
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const datePart = new Date().toISOString().slice(0, 10)
+
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `practice-log-${datePart}.csv`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const handleImportClick = () => {
+    importInputRef.current?.click()
+  }
+
+  const handleImportCsv = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) {
+      return
+    }
+
+    try {
+      const content = await file.text()
+      const imported = importSessionsFromCsv(content)
+
+      const nextSessions =
+        importMode === 'replace'
+          ? imported.sessions
+          : (() => {
+              const merged = new Map<string, PracticeSession>()
+              sessions.forEach((session) => merged.set(session.id, session))
+              imported.sessions.forEach((session) => merged.set(session.id, session))
+
+              return [...merged.values()].sort(
+                (a, b) =>
+                  new Date(b.startTime).getTime() - new Date(a.startTime).getTime(),
+              )
+            })()
+
+      onDeleteSessions(nextSessions)
+      setImportMessage(
+        `Imported ${imported.sessions.length} sessions from ${imported.rowCount} rows (${importMode}).`,
+      )
+      setSelectedIdsRaw([])
+    } catch (importError) {
+      const message =
+        importError instanceof Error ? importError.message : 'Import failed.'
+      setImportMessage(`Import error: ${message}`)
+    }
+  }
 
   const toggleSelected = (sessionId: string) => {
     setSelectedIdsRaw((current) => {
@@ -148,6 +200,29 @@ export function SessionsView({
       <div className="panel-head">
         <h2>Past Sessions</h2>
         <div className="actions">
+          <select
+            aria-label="Import mode"
+            value={importMode}
+            onChange={(event) =>
+              setImportMode(event.target.value === 'replace' ? 'replace' : 'merge')
+            }
+          >
+            <option value="merge">Import mode: merge</option>
+            <option value="replace">Import mode: replace all</option>
+          </select>
+          <button className="btn ghost" type="button" onClick={handleExportCsv}>
+            Export CSV
+          </button>
+          <button className="btn ghost" type="button" onClick={handleImportClick}>
+            Import CSV
+          </button>
+          <input
+            ref={importInputRef}
+            type="file"
+            accept=".csv,text/csv"
+            onChange={handleImportCsv}
+            className="hidden-input"
+          />
           <button
             className="btn ghost"
             type="button"
@@ -174,6 +249,8 @@ export function SessionsView({
           </button>
         </div>
       </div>
+
+      {importMessage && <p className="muted">{importMessage}</p>}
 
       {!sessions.length && <p className="muted">No sessions.</p>}
 

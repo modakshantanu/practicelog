@@ -1,12 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { PracticeSession, SuggestedValues } from '../types'
 import { buildEmptyDraft } from '../utils/sessionDraft'
-import {
-  elapsedMinutes,
-  elapsedSeconds,
-  nowIsoLocalMinute,
-  parseLocalDateTime,
-} from '../utils/time'
+import { elapsedSeconds, nowIsoLocalMinute, parseLocalDateTime } from '../utils/time'
 import { SessionForm } from './SessionForm'
 
 type RecordViewProps = {
@@ -16,21 +11,37 @@ type RecordViewProps = {
 
 export function RecordView({ suggestions, onSaveSession }: RecordViewProps) {
   const [draft, setDraft] = useState(buildEmptyDraft)
-  const [liveStartMs, setLiveStartMs] = useState<number | null>(null)
-  const [liveSeconds, setLiveSeconds] = useState(0)
+  const [runStartedMs, setRunStartedMs] = useState<number | null>(null)
+  const [accumulatedSeconds, setAccumulatedSeconds] = useState(0)
+  const [tickMs, setTickMs] = useState(0)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    if (!liveStartMs) {
+    if (!runStartedMs) {
       return
     }
 
     const timer = setInterval(() => {
-      setLiveSeconds(elapsedSeconds(liveStartMs))
+      const nowMs = Date.now()
+      const totalSeconds = accumulatedSeconds + elapsedSeconds(runStartedMs)
+      setTickMs(nowMs)
+      setDraft((current) => ({
+        ...current,
+        totalDurationMinutes: Math.floor(totalSeconds / 60),
+      }))
     }, 1000)
 
     return () => clearInterval(timer)
-  }, [liveStartMs])
+  }, [accumulatedSeconds, runStartedMs])
+
+  const liveSeconds = useMemo(() => {
+    if (!runStartedMs) {
+      return accumulatedSeconds
+    }
+
+    const elapsed = Math.max(0, Math.floor((tickMs - runStartedMs) / 1000))
+    return accumulatedSeconds + elapsed
+  }, [accumulatedSeconds, runStartedMs, tickMs])
 
   const liveLabel = useMemo(() => {
     const hours = Math.floor(liveSeconds / 3600)
@@ -76,33 +87,48 @@ export function RecordView({ suggestions, onSaveSession }: RecordViewProps) {
 
     onSaveSession(session)
     setDraft(buildEmptyDraft())
-    setLiveStartMs(null)
-    setLiveSeconds(0)
+    setRunStartedMs(null)
+    setAccumulatedSeconds(0)
+    setTickMs(0)
   }
 
-  const startRealtime = () => {
-    const start = Date.now()
-    setLiveStartMs(start)
-    setLiveSeconds(0)
-    setError('')
-    setDraft((current) => ({
-      ...current,
-      startTime: nowIsoLocalMinute(),
-      totalDurationMinutes: 0,
-    }))
-  }
-
-  const stopRealtime = () => {
-    if (!liveStartMs) {
+  const startOrPauseRealtime = () => {
+    if (runStartedMs) {
+      const elapsedSinceStart = elapsedSeconds(runStartedMs)
+      const nextAccumulated = accumulatedSeconds + elapsedSinceStart
+      setAccumulatedSeconds(nextAccumulated)
+      setDraft((current) => ({
+        ...current,
+        totalDurationMinutes: Math.floor(nextAccumulated / 60),
+      }))
+      setRunStartedMs(null)
       return
     }
 
-    const elapsed = Math.max(1, elapsedMinutes(liveStartMs))
+    const baseSeconds = Math.max(0, Math.round(draft.totalDurationMinutes * 60))
+    const start = Date.now()
+
+    if (baseSeconds === 0) {
+      setDraft((current) => ({
+        ...current,
+        startTime: nowIsoLocalMinute(),
+      }))
+    }
+
+    setAccumulatedSeconds(baseSeconds)
+    setRunStartedMs(start)
+    setTickMs(start)
+    setError('')
+  }
+
+  const resetRealtime = () => {
     setDraft((current) => ({
       ...current,
-      totalDurationMinutes: elapsed,
+      totalDurationMinutes: 0,
     }))
-    setLiveStartMs(null)
+    setAccumulatedSeconds(0)
+    setTickMs(0)
+    setRunStartedMs(null)
   }
 
   return (
@@ -117,30 +143,20 @@ export function RecordView({ suggestions, onSaveSession }: RecordViewProps) {
           <div className="live-time">{liveLabel}</div>
         </div>
         <div className="actions">
-          {!liveStartMs && (
-            <button className="btn primary" type="button" onClick={startRealtime}>
-              Start
-            </button>
-          )}
-          {liveStartMs && (
-            <button className="btn danger" type="button" onClick={stopRealtime}>
-              Stop timer
-            </button>
-          )}
           <button
-            className="btn ghost"
+            className="btn primary"
             type="button"
-            disabled={!liveStartMs}
-            onClick={() =>
-              setDraft((current) => ({
-                ...current,
-                totalDurationMinutes: liveStartMs
-                  ? Math.max(1, elapsedMinutes(liveStartMs))
-                  : current.totalDurationMinutes,
-              }))
-            }
+            onClick={startOrPauseRealtime}
           >
-            Sync
+            {runStartedMs ? 'Pause' : 'Start'}
+          </button>
+          <button
+            className="btn danger"
+            type="button"
+            disabled={!runStartedMs && accumulatedSeconds === 0 && draft.totalDurationMinutes === 0}
+            onClick={resetRealtime}
+          >
+            Reset
           </button>
         </div>
       </div>

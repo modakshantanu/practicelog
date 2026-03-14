@@ -93,6 +93,18 @@ function sanitizeSession(input: unknown): PracticeSession | null {
   }
 }
 
+export function sanitizeSessions(input: unknown): PracticeSession[] {
+  if (!Array.isArray(input)) {
+    return []
+  }
+
+  return sortSessions(
+    input
+      .map((session) => sanitizeSession(session))
+      .filter((session): session is PracticeSession => session !== null),
+  )
+}
+
 function sortSessions(sessions: PracticeSession[]): PracticeSession[] {
   return [...sessions].sort((a, b) => {
     return new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
@@ -111,11 +123,7 @@ export function loadSessions(): PracticeSession[] {
       return []
     }
 
-    const sanitized = parsed
-      .map((session) => sanitizeSession(session))
-      .filter((session): session is PracticeSession => session !== null)
-
-    return sortSessions(sanitized)
+    return sanitizeSessions(parsed)
   } catch {
     return []
   }

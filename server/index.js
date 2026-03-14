@@ -13,7 +13,6 @@ dotenv.config()
 const {
   PORT = '8787',
   FRONTEND_URL = 'http://localhost:5173',
-  ALLOWED_FRONTEND_ORIGINS,
   API_BASE_URL = `http://localhost:${PORT}`,
   SESSION_SECRET,
   AUTH_TOKEN_SECRET,
@@ -22,28 +21,6 @@ const {
   GOOGLE_CLIENT_SECRET,
   NODE_ENV,
 } = process.env
-
-const allowedFrontendOrigins = new Set(
-  (ALLOWED_FRONTEND_ORIGINS ?? FRONTEND_URL)
-    .split(',')
-    .map((value) => value.trim())
-    .filter(Boolean),
-)
-
-allowedFrontendOrigins.add(FRONTEND_URL)
-
-function isAllowedOrigin(value) {
-  if (!value) {
-    return false
-  }
-
-  try {
-    const candidate = new URL(value)
-    return allowedFrontendOrigins.has(candidate.origin)
-  } catch {
-    return false
-  }
-}
 
 const missing = [
   ['SESSION_SECRET', SESSION_SECRET],
@@ -176,6 +153,20 @@ async function ensureTables() {
     CREATE INDEX IF NOT EXISTS user_sessions_expire_idx
       ON user_sessions (expire);
   `)
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS user_practice_sessions (
+      user_id INTEGER PRIMARY KEY REFERENCES app_users(id) ON DELETE CASCADE,
+      sessions JSONB NOT NULL DEFAULT '[]'::jsonb,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `)
+}
+
+async function resolveAuthenticatedUser(req) {
+  const tokenUser = await userFromToken(req)
+  const sessionUser = req.isAuthenticated() ? req.user : null
+  return tokenUser ?? sessionUser
 }
 
 passport.serializeUser((user, done) => {
@@ -235,14 +226,7 @@ app.set('trust proxy', 1)
 
 app.use(
   cors({
-    origin(origin, callback) {
-      if (!origin || allowedFrontendOrigins.has(origin)) {
-        callback(null, true)
-        return
-      }
-
-      callback(new Error(`Origin not allowed: ${origin}`))
-    },
+    origin: FRONTEND_URL,
     credentials: true,
   }),
 )
@@ -276,19 +260,13 @@ app.get('/healthz', (_req, res) => {
   res.json({ ok: true })
 })
 
-app.get('/auth/google', (req, res, next) => {
-  const requestedReturnTo =
-    typeof req.query.returnTo === 'string' ? req.query.returnTo : ''
-
-  req.session.oauthReturnTo = isAllowedOrigin(requestedReturnTo)
-    ? requestedReturnTo
-    : FRONTEND_URL
-
+app.get(
+  '/auth/google',
   passport.authenticate('google', {
     scope: ['openid', 'email', 'profile'],
     prompt: 'select_account',
-  })(req, res, next)
-})
+  }),
+)
 
 app.get(
   '/auth/google/callback',
@@ -297,14 +275,6 @@ app.get(
     session: true,
   }),
   (req, res) => {
-    const redirectTo =
-      typeof req.session.oauthReturnTo === 'string' &&
-      isAllowedOrigin(req.session.oauthReturnTo)
-        ? req.session.oauthReturnTo
-        : FRONTEND_URL
-
-    delete req.session.oauthReturnTo
-
     const userId = req.user?.id
     const authToken =
       typeof userId === 'number'
@@ -315,20 +285,18 @@ app.get(
         : null
 
     if (!authToken) {
-      res.redirect(redirectTo)
+      res.redirect(FRONTEND_URL)
       return
     }
 
-    const separator = redirectTo.includes('?') ? '&' : '?'
-    res.redirect(`${redirectTo}${separator}auth_token=${encodeURIComponent(authToken)}`)
+    const separator = FRONTEND_URL.includes('?') ? '&' : '?'
+    res.redirect(`${FRONTEND_URL}${separator}auth_token=${encodeURIComponent(authToken)}`)
   },
 )
 
 app.get('/auth/me', async (req, res, next) => {
   try {
-    const tokenUser = await userFromToken(req)
-    const sessionUser = req.isAuthenticated() ? req.user : null
-    const user = tokenUser ?? sessionUser
+    const user = await resolveAuthenticatedUser(req)
 
     if (!user) {
       res.status(401).json({ authenticated: false })
@@ -344,6 +312,74 @@ app.get('/auth/me', async (req, res, next) => {
         avatarUrl: user.avatar_url,
       },
     })
+  } catch (error) {
+    next(error)
+  }
+})
+
+app.get('/api/sessions', async (req, res, next) => {
+  try {
+    const user = await resolveAuthenticatedUser(req)
+    if (!user) {
+      res.status(401).json({ error: 'Not authenticated.' })
+      return
+    }
+
+    const result = await pool.query(
+      `
+      SELECT sessions, updated_at
+      FROM user_practice_sessions
+      WHERE user_id = $1
+      `,
+      [user.id],
+    )
+
+    if (!result.rows[0]) {
+      res.json({ sessions: [], updatedAt: null })
+      return
+    }
+
+    res.json({
+      sessions: Array.isArray(result.rows[0].sessions) ? result.rows[0].sessions : [],
+      updatedAt: result.rows[0].updated_at,
+    })
+  } catch (error) {
+    next(error)
+  }
+})
+
+app.put('/api/sessions', async (req, res, next) => {
+  try {
+    const user = await resolveAuthenticatedUser(req)
+    if (!user) {
+      res.status(401).json({ error: 'Not authenticated.' })
+      return
+    }
+
+    const { sessions } = req.body ?? {}
+    if (!Array.isArray(sessions)) {
+      res.status(400).json({ error: 'sessions must be an array.' })
+      return
+    }
+
+    if (sessions.length > 5000) {
+      res.status(400).json({ error: 'sessions payload is too large.' })
+      return
+    }
+
+    await pool.query(
+      `
+      INSERT INTO user_practice_sessions (user_id, sessions, updated_at)
+      VALUES ($1, $2::jsonb, NOW())
+      ON CONFLICT (user_id)
+      DO UPDATE SET
+        sessions = EXCLUDED.sessions,
+        updated_at = NOW();
+      `,
+      [user.id, JSON.stringify(sessions)],
+    )
+
+    res.status(204).end()
   } catch (error) {
     next(error)
   }

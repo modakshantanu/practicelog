@@ -5,6 +5,11 @@ export type AuthUser = {
   avatarUrl: string | null
 }
 
+export type CloudSessionsResponse = {
+  sessions: unknown[]
+  updatedAt: string | null
+}
+
 const AUTH_TOKEN_KEY = 'practice_log_auth_token_v1'
 
 type AuthMeResponse = {
@@ -71,8 +76,7 @@ export async function fetchCurrentUser(): Promise<AuthUser | null> {
 }
 
 export function beginGoogleSignIn(): void {
-  const returnTo = encodeURIComponent(window.location.origin)
-  window.location.assign(buildUrl(`/auth/google?returnTo=${returnTo}`))
+  window.location.assign(buildUrl('/auth/google'))
 }
 
 export async function signOutCurrentUser(): Promise<void> {
@@ -89,4 +93,42 @@ export async function signOutCurrentUser(): Promise<void> {
   }
 
   clearAuthToken()
+}
+
+export async function fetchCloudSessions(): Promise<CloudSessionsResponse> {
+  const token = getAuthToken()
+
+  const response = await fetch(buildUrl('/api/sessions'), {
+    method: 'GET',
+    credentials: 'include',
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  })
+
+  if (!response.ok) {
+    throw new Error('Unable to fetch cloud sessions.')
+  }
+
+  const payload = (await response.json()) as CloudSessionsResponse
+  return {
+    sessions: Array.isArray(payload.sessions) ? payload.sessions : [],
+    updatedAt: typeof payload.updatedAt === 'string' ? payload.updatedAt : null,
+  }
+}
+
+export async function saveCloudSessions(sessions: unknown[]): Promise<void> {
+  const token = getAuthToken()
+
+  const response = await fetch(buildUrl('/api/sessions'), {
+    method: 'PUT',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ sessions }),
+  })
+
+  if (!response.ok) {
+    throw new Error('Unable to save cloud sessions.')
+  }
 }
