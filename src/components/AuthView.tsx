@@ -13,7 +13,7 @@ export function AuthView({ configured, loading, error, onSignIn }: AuthViewProps
       </div>
 
       <p className="muted">
-        Use Google to access your Render-hosted account session.
+        Use Google to access your account.
       </p>
 
       {!configured && (
