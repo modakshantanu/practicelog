@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   clearRecordDraftState,
   loadRecordDraftState,
@@ -8,6 +8,35 @@ import type { PracticeSession, SuggestedValues } from '../types'
 import { buildEmptyDraft } from '../utils/sessionDraft'
 import { elapsedSeconds, nowIsoLocalMinute, parseLocalDateTime } from '../utils/time'
 import { SessionForm } from './SessionForm'
+
+const NOTIF_TAG = 'practice-timer'
+
+async function requestNotificationPermission(): Promise<boolean> {
+  if (!('Notification' in window)) return false
+  if (Notification.permission === 'granted') return true
+  if (Notification.permission === 'denied') return false
+  const result = await Notification.requestPermission()
+  return result === 'granted'
+}
+
+async function showTimerNotification(minutes: number) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return
+  const reg = await navigator.serviceWorker?.ready
+  if (!reg) return
+  await reg.showNotification('Practice Log', {
+    body: `Session running — ${minutes} min`,
+    tag: NOTIF_TAG,
+    silent: true,
+    requireInteraction: true,
+  })
+}
+
+async function closeTimerNotification() {
+  const reg = await navigator.serviceWorker?.ready
+  if (!reg) return
+  const notifications = await reg.getNotifications({ tag: NOTIF_TAG })
+  notifications.forEach(n => n.close())
+}
 
 type RecordViewProps = {
   suggestions: SuggestedValues
@@ -55,6 +84,7 @@ export function RecordView({ suggestions, onSaveSession }: RecordViewProps) {
   const [accumulatedSeconds, setAccumulatedSeconds] = useState(initialState.accumulatedSeconds)
   const [tickMs, setTickMs] = useState(initialState.tickMs)
   const [error, setError] = useState('')
+  const lastNotifMinute = useRef(-1)
 
   useEffect(() => {
     saveRecordDraftState({ draft, accumulatedSeconds, runStartedMs })
@@ -73,6 +103,12 @@ export function RecordView({ suggestions, onSaveSession }: RecordViewProps) {
         ...current,
         totalDurationMinutes: Math.floor(totalSeconds / 60),
       }))
+
+      const currentMinute = Math.floor(totalSeconds / 60)
+      if (currentMinute !== lastNotifMinute.current) {
+        lastNotifMinute.current = currentMinute
+        showTimerNotification(currentMinute)
+      }
     }, 1000)
 
     return () => clearInterval(timer)
@@ -135,6 +171,8 @@ export function RecordView({ suggestions, onSaveSession }: RecordViewProps) {
     setRunStartedMs(null)
     setAccumulatedSeconds(0)
     setTickMs(0)
+    lastNotifMinute.current = -1
+    closeTimerNotification()
   }
 
   const startOrPauseRealtime = () => {
@@ -147,6 +185,8 @@ export function RecordView({ suggestions, onSaveSession }: RecordViewProps) {
         totalDurationMinutes: Math.floor(nextAccumulated / 60),
       }))
       setRunStartedMs(null)
+      lastNotifMinute.current = -1
+      closeTimerNotification()
       return
     }
 
@@ -167,6 +207,14 @@ export function RecordView({ suggestions, onSaveSession }: RecordViewProps) {
     setRunStartedMs(start)
     setTickMs(start)
     setError('')
+
+    requestNotificationPermission().then(granted => {
+      if (granted) {
+        const mins = Math.floor(accumulatedSeconds / 60)
+        lastNotifMinute.current = mins
+        showTimerNotification(mins)
+      }
+    })
   }
 
   const resetRealtime = () => {
@@ -177,6 +225,8 @@ export function RecordView({ suggestions, onSaveSession }: RecordViewProps) {
     setAccumulatedSeconds(0)
     setTickMs(0)
     setRunStartedMs(null)
+    lastNotifMinute.current = -1
+    closeTimerNotification()
   }
 
   return (
